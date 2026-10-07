@@ -19,6 +19,7 @@ from asusrouter.modules.nvram import (
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.wifi import (
+    AR_WIFI_BAND_SECOND,
     AR_WIFI_MAX_UNITS,
     ARWiFiBand,
     ARWiFiCapability,
@@ -40,14 +41,22 @@ def _translate_firmware(data: IdentityData) -> ARFirmware:
     )
 
 
-def _wifi_from_bands(
+def _bands_and_units(
     data: IdentityData, support: dict[ARSupportType, Any]
+) -> tuple[list[str], Any]:
+    """Get the `WIRELESS_BANDS` rows and the WiFi units support."""
+
+    capabilities = support.get(ARSupportType.WIFI_CAPABILITIES, {})
+    return (
+        split_rows(data.get(ARNvramType.WIRELESS_BANDS)),
+        capabilities.get(ARWiFiCapability.UNITS, ()),
+    )
+
+
+def _wifi_from_bands(
+    bands: list[str], bands_ids: Any
 ) -> dict[ARWiFiBand, int]:
     """Map bands via `WIRELESS_BANDS` nvram and the WiFi units support."""
-
-    bands = split_rows(data.get(ARNvramType.WIRELESS_BANDS))
-    capabilities = support.get(ARSupportType.WIFI_CAPABILITIES, {})
-    bands_ids = capabilities.get(ARWiFiCapability.UNITS, ())
 
     result: dict[ARWiFiBand, int] = {}
     for band, band_id in zip(bands, bands_ids):
@@ -72,6 +81,9 @@ def _wifi_from_nband(data: IdentityData) -> dict[ARWiFiBand, int]:
                 data.get(ARNvramIndexSource(ARNvramIndexType.WL_NBAND, unit))
             )
         )
+        # A second radio on the same frequency is its second band
+        if band in result:
+            band = AR_WIFI_BAND_SECOND.get(band, ARWiFiBand.UNKNOWN)
         if band is not ARWiFiBand.UNKNOWN and band not in result:
             result[band] = unit
 
@@ -81,9 +93,19 @@ def _wifi_from_nband(data: IdentityData) -> dict[ARWiFiBand, int]:
 def _translate_wifi(
     data: IdentityData, support: dict[ARSupportType, Any]
 ) -> dict[ARWiFiBand, int]:
-    """Parse the WiFi band -> unit map from the raw device payload."""
+    """Parse the WiFi band -> unit map from the raw device payload.
 
-    return _wifi_from_bands(data, support) or _wifi_from_nband(data)
+    `WIRELESS_BANDS` is paired with the WiFi units support, which knows
+    at most 3 units. When it lists more bands than that (a quad-band
+    device), the pairing would drop a radio, so the per-radio nband map
+    is used instead when available.
+    """
+
+    bands, bands_ids = _bands_and_units(data, support)
+    from_bands = _wifi_from_bands(bands, bands_ids)
+    if from_bands and len(bands) <= len(bands_ids):
+        return from_bands
+    return _wifi_from_nband(data) or from_bands
 
 
 def _translate_mac(data: IdentityData) -> MacAddress | None:

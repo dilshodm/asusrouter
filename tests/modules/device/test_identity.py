@@ -189,11 +189,55 @@ class TestTranslateWifi:
             ARWiFiBand.BAND_5G1: 1,
         }
 
-    def test_nband_first_unit_wins(self) -> None:
-        """A repeated band keeps the first unit."""
+    def test_nband_second_radio(self) -> None:
+        """A repeated frequency maps to its second band."""
 
         data = self._nband(**{"0": "1", "1": "1"})
-        assert _translate_wifi(data, {}) == {ARWiFiBand.BAND_5G1: 0}
+        assert _translate_wifi(data, {}) == {
+            ARWiFiBand.BAND_5G1: 0,
+            ARWiFiBand.BAND_5G2: 1,
+        }
+
+    def test_nband_third_radio_skipped(self) -> None:
+        """A third radio on the same frequency has no band and is skipped."""
+
+        data = self._nband(**{"0": "1", "1": "1", "2": "1"})
+        assert _translate_wifi(data, {}) == {
+            ARWiFiBand.BAND_5G1: 0,
+            ARWiFiBand.BAND_5G2: 1,
+        }
+
+    def test_nband_quadband_2g_last(self) -> None:
+        """Quad-band with 2.4GHz as the last unit (GT-AXE16000)."""
+
+        data = self._nband(**{"0": "1", "1": "1", "2": "4", "3": "2"})
+        assert _translate_wifi(data, {}) == {
+            ARWiFiBand.BAND_5G1: 0,
+            ARWiFiBand.BAND_5G2: 1,
+            ARWiFiBand.BAND_6G1: 2,
+            ARWiFiBand.BAND_2G1: 3,
+        }
+
+    def test_bands_beyond_units_use_nband(self) -> None:
+        """More WIRELESS_BANDS rows than support units falls back to nband."""
+
+        data = {
+            ARNvramType.WIRELESS_BANDS: "2g1&#605g1&#605g2&#606g1",
+            **self._nband(**{"0": "1", "1": "1", "2": "4", "3": "2"}),
+        }
+        assert _translate_wifi(
+            data,
+            {
+                ARSupportType.WIFI_CAPABILITIES: {
+                    ARWiFiCapability.UNITS: (0, 1, 2)
+                }
+            },
+        ) == {
+            ARWiFiBand.BAND_5G1: 0,
+            ARWiFiBand.BAND_5G2: 1,
+            ARWiFiBand.BAND_6G1: 2,
+            ARWiFiBand.BAND_2G1: 3,
+        }
 
     def test_nband_unknown_skipped(self) -> None:
         """An unknown nband code is skipped."""

@@ -67,12 +67,20 @@ class ARWiFiBand(FromStrMixin, StrEnum):
 
 
 # Broadcom `wl{}_nband` radio code -> band, for firmware without
-# `WIRELESS_BANDS` (2 = 2.4GHz, 1 = 5GHz, 4 = 6GHz); the first band of
-# each frequency is used
+# `WIRELESS_BANDS` (2 = 2.4GHz, 1 = 5GHz, 4 = 6GHz); this is the first
+# band of each frequency, see `AR_WIFI_BAND_SECOND` for the next one
 _NBAND_TO_BAND: dict[str, ARWiFiBand] = {
     "1": ARWiFiBand.BAND_5G1,
     "2": ARWiFiBand.BAND_2G1,
     "4": ARWiFiBand.BAND_6G1,
+}
+
+# First band -> second band of the same frequency, for devices with two
+# radios on one frequency (e.g. GT-AXE16000 with 5GHz-1 and 5GHz-2)
+AR_WIFI_BAND_SECOND: dict[ARWiFiBand, ARWiFiBand] = {
+    ARWiFiBand.BAND_2G1: ARWiFiBand.BAND_2G2,
+    ARWiFiBand.BAND_5G1: ARWiFiBand.BAND_5G2,
+    ARWiFiBand.BAND_6G1: ARWiFiBand.BAND_6G2,
 }
 
 

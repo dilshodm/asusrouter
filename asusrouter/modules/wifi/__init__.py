@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from asusrouter.modules.wifi.action import ARWiFiAction, run_action
 from asusrouter.modules.wifi.enums import (
+    AR_WIFI_BAND_SECOND,
     AR_WIFI_MAX_UNITS,
     AR_WIFI_UNIT_FALLBACK,
     ARWiFiAuth,
@@ -25,6 +26,7 @@ from asusrouter.modules.wifi.source import (
 )
 
 __all__ = [
+    "AR_WIFI_BAND_SECOND",
     "AR_WIFI_MAX_UNITS",
     "AR_WIFI_UNIT_FALLBACK",
     "ARWiFiAction",
