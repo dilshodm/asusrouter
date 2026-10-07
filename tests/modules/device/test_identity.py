@@ -221,8 +221,9 @@ class TestTranslateWifi:
     def test_bands_beyond_units_use_nband(self) -> None:
         """More WIRELESS_BANDS rows than support units falls back to nband."""
 
+        # GT-AXE16000 (3.0.0.6.102.8_0) nvram
         data = {
-            ARNvramType.WIRELESS_BANDS: "2g1&#605g1&#605g2&#606g1",
+            ARNvramType.WIRELESS_BANDS: "5g1&#605g2&#606g1&#602g1",
             **self._nband(**{"0": "1", "1": "1", "2": "4", "3": "2"}),
         }
         assert _translate_wifi(
